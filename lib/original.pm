@@ -2,7 +2,9 @@ package original;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = 0.01;
+$VERSION = 0.02;
+
+use Devel::Symdump;
 
 my %Registered;
 
@@ -13,7 +15,7 @@ sub import {
     no strict 'refs';
     *{"$pkg\::import"} = sub {
 	return if exists $Registered{$pkg};
-	local $SIG{__WARN__} = sub {};
+	local $^W = 0;
 	for my $method (__find_methods($pkg)) {
 	    next if $method eq 'import';
 	    if (defined &{"$orig\::$method"}) {
@@ -26,12 +28,8 @@ sub import {
 }
 
 sub __find_methods {
-    my $class = shift;
-    no strict 'refs';
-    my $globhash = "$class\::";
-    return grep {
-	$globhash->{$_} and *{$globhash->{$_}}{CODE};
-    } keys %$globhash;
+    my $pkg = shift;
+    return map { s/^$pkg\:://; $_ } Devel::Symdump->functions($pkg);
 }
 
 sub original {
